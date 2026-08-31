@@ -61,4 +61,40 @@ hesitation, note the entry that earned it.
 
 ## Entries
 
-_Nothing yet. First entry due at the end of Phase 0._
+### 2026-08-31 — "Never create a client at module scope" is about sessions, not connections
+
+**Concept**: what the rule in [AGENTS.md](../AGENTS.md) is actually protecting against.
+**What happened**: writing the Drizzle admin client, the rule seemed to forbid a
+module-scope connection pool — which would mean building a new pool per request.
+**Why**: the rule exists because a Supabase client holds a user's session, so sharing one
+across requests leaks that session to the next visitor. A postgres.js pool carries no
+identity at all; it authenticates as one fixed role. Reusing it is not just safe, it is the
+point, since Render runs a single persistent process.
+**Takeaway**: the pool is a lazily created singleton with a comment naming the distinction,
+so the next reader does not "fix" it. Rules are worth restating as the mechanism they
+protect, not the shape they forbid.
+
+### 2026-08-31 — Putting a secret in `nuxt.config.ts` would have broken the Docker build
+
+**Concept**: build-time versus run-time configuration.
+**What happened**: the obvious way to satisfy "configure `secretKey`" was
+`secretKey: process.env.NUXT_SUPABASE_SECRET_KEY` in the module options.
+**Why**: `nuxt.config.ts` is evaluated at build time, so that value gets baked into the
+bundle. In Phase 6 the image is built once and the secret arrives at container start, so
+the baked value would be whatever was set on the build machine — probably empty.
+`@nuxtjs/supabase` already registers url, key and secretKey as `runtimeConfig`, and Nitro
+overrides `runtimeConfig` from `NUXT_*` environment variables at run time.
+**Takeaway**: leave it out of the config entirely and let the env var supply it. This is
+the concrete reason behind the repo's "never read `process.env` at a call site" rule, which
+until now read as style rather than consequence.
+
+### 2026-08-31 — Nuxt UI owns the Tailwind installation
+
+**Concept**: where a module's boundary actually sits.
+**What happened**: [tech-stack.md](tech-stack.md) lists Tailwind and Nuxt UI as two
+choices, which suggested installing `@nuxtjs/tailwindcss` alongside `@nuxt/ui`.
+**Why**: Nuxt UI 4 depends on `tailwindcss`, `@tailwindcss/vite` and `@tailwindcss/postcss`
+and registers the Vite plugin itself. A second Tailwind module would have produced two
+competing pipelines. The real setup is two `@import` lines in one CSS file.
+**Takeaway**: check what a module already pulls in before adding its dependencies
+separately. Reading `node_modules/<pkg>/package.json` answered this faster than the docs.

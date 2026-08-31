@@ -8,23 +8,28 @@ How to use this file: tick items as they land, and when a phase closes, write wh
 learned and what broke into [learning-log.md](learning-log.md). Do not start a phase
 before the previous one's exit criteria are met — the exit criteria are the point.
 
-Status: **Phase 0 not started.**
+Status: **Phase 0 complete. Phase 1 not started.**
+
+Each phase gets a short plan written just before it starts, and that file becomes the
+record of how it was built. See [plans/phase-0.md](plans/phase-0.md).
 
 ---
 
 ## Phase 0 — Foundation
 
-- [ ] Scaffold Nuxt 4.5 with TypeScript strict, pnpm, ESLint and Prettier
-- [ ] Tailwind and Nuxt UI, with a bare app shell and layout
-- [ ] Add `@nuxtjs/supabase` with `useSsrCookies: true` and `secretKey` configuration
-- [ ] Create the managed staging Supabase project
-- [ ] Bring up the local Supabase CLI stack in Docker and confirm `supabase db reset`
-- [ ] Add Drizzle, `drizzle.config.ts` and the admin client in `server/db/`
-- [ ] `runtimeConfig` and `.env.example` covering every secret
-- [ ] `server/utils/errors.ts` as the single error factory
-- [ ] `git init` and first commit with the docs
+- [x] Scaffold Nuxt 4.5 with TypeScript strict, npm, ESLint and Prettier
+- [x] Tailwind and Nuxt UI, with a bare app shell and layout
+- [x] Add `@nuxtjs/supabase` with `useSsrCookies: true` and `secretKey` configuration
+- [x] Bring up the local Supabase CLI stack in Docker and confirm `supabase db reset`
+- [x] Add Drizzle, `drizzle.config.ts` and the admin client in `server/db/`
+- [x] `runtimeConfig` and `.env.example` covering every secret
+- [x] `server/utils/errors.ts` as the single error factory
+- [x] `git init` and first commit with the docs
 
-**Exit criteria.** `pnpm dev` runs, the local Supabase stack is reachable, a smoke-test
+Phase 0 is entirely local. Creating the managed staging Supabase project needs the
+Supabase dashboard, so it sits with the deploy work in Phase 1 rather than here.
+
+**Exit criteria.** `npm dev` runs, the local Supabase stack is reachable, a smoke-test
 Nitro route reads from Postgres, and no secret is referenced outside `runtimeConfig`.
 
 ---
@@ -45,6 +50,7 @@ Nitro route reads from Postgres, and no secret is referenced outside `runtimeCon
 - [ ] SQL RLS tests: member A cannot read, update or delete member B's trades
 - [ ] Vitest units for P&L, win rate and R multiple
 - [ ] `seed.sql` with a believable demo organisation
+- [ ] Create the managed staging Supabase project
 - [ ] Deploy to Render and confirm the deployed app works against staging Supabase
 
 **Exit criteria.** Two seeded users can each log trades and provably cannot see each

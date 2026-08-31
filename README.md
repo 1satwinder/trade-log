@@ -22,7 +22,8 @@ Scope discipline is a feature. If something does not teach one of the concepts i
 
 ## Status
 
-Planning complete, implementation not started. See [docs/roadmap.md](docs/roadmap.md).
+Phase 0 complete: the app shell runs against a local Supabase stack. See
+[docs/roadmap.md](docs/roadmap.md).
 
 ## Documentation
 
@@ -41,8 +42,28 @@ Read in this order if you are new to the project:
 
 ## Getting started
 
-Not yet applicable. This section gets filled in during Phase 0 with the real commands
-for the local Supabase stack, environment variables and the dev server.
+Requires Node 22 (see `.nvmrc`) and a running Docker daemon.
+
+```bash
+npm install
+npm run db:start        # brings up the Supabase stack in Docker; slow on first run
+cp .env.example .env    # then paste the keys printed by `npm run db:status`
+npm run dev
+```
+
+The app is on http://localhost:3000, Supabase Studio on http://127.0.0.1:54323, and
+`curl localhost:3000/api/health` confirms Nitro can reach Postgres.
+
+| Script              | What it does                                         |
+| ------------------- | ---------------------------------------------------- |
+| `npm run dev`       | Nuxt dev server                                      |
+| `npm run typecheck` | `vue-tsc` across app and server                      |
+| `npm run lint`      | ESLint with the Nuxt config                          |
+| `npm run format`    | Prettier, which owns all formatting                  |
+| `npm run db:start`  | Local Supabase stack in Docker                       |
+| `npm run db:status` | Prints the local URLs and keys for `.env`            |
+| `npm run db:reset`  | Rebuilds the database, replaying migrations and seed |
+| `npm run db:stop`   | Stops the local stack                                |
 
 ## Documentation rules
 

@@ -1,0 +1,3 @@
+# Migrations land here as <timestamp>_<verb>_<subject>.sql, generated with drizzle-kit
+# and renamed from Drizzle's 0000_* output. The Supabase CLI is the only migration
+# runner. Phase 1 adds the first one.
