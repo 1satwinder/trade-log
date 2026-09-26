@@ -42,7 +42,10 @@ export default defineNuxtConfig({
   // Every secret is declared here and read through useRuntimeConfig(event). Nothing in
   // app or server code touches process.env. Keys are overridden at runtime by the
   // matching NUXT_ environment variable listed in .env.example.
+  // runtimeConfig values are resolved at process start That is exactly why one Docker image can be built once
+  // and run in staging and production with different secrets
   runtimeConfig: {
+    // !! Top-level keys are server-only. Only public reaches the browser.
     // Session-mode connection, used only by the Drizzle admin client.
     databaseUrl: '',
     // Direct connection on port 5432. Migrations only.
@@ -58,7 +61,7 @@ export default defineNuxtConfig({
     marketDataApiKey: '',
 
     public: {
-      siteUrl: 'http://localhost:3000',
+      siteUrl: 'http://localhost:3000', // sent to the browser as environment variable becuase its under public key
       stripePublishableKey: '',
     },
   },

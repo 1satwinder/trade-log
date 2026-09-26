@@ -45,6 +45,7 @@ When a task is finished, say what was learned or what was surprising, so it can 
   narrating the change being made.
 - SQL keywords lowercase, matching the Supabase docs style, so migrations read
   consistently.
+- Write a comment before every new function
 
 ## Naming
 
