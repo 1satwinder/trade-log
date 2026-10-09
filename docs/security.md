@@ -60,6 +60,10 @@ evaluated per row.
 into another organisation. Every writable table needs `with check` clauses that pin both
 `org_id` and, where relevant, `user_id`.
 
+**Grants.** New tables in `public` get no API grants by default, and the defaults that do
+remain include `truncate`, which ignores RLS. Each migration grants per table and per
+column (ADR-0011); a policy on a column the role cannot update is never reached.
+
 **Shared server clients.** A Supabase client created at module scope on the server leaks
 sessions between requests. Always create per request.
 
@@ -106,6 +110,9 @@ Run through this before merging anything that touches data access:
       it, and does every query filter by `org_id`?
 - [ ] Does every new table have RLS enabled, with `select`, `insert`, `update` and
       `delete` policies each chosen deliberately?
+- [ ] Does every new table or column have explicit grants that match its policies, with
+      `anon` granted nothing unless there is a reason, and `update` granted per column?
+      (`supabase/tests/rls_catalogue.test.sql` catches the table-level mistakes.)
 - [ ] Are policy predicates wrapped as `(select ...)`, scoped `to authenticated`, and
       backed by an index?
 - [ ] Is there a test proving the new surface cannot be read across organisations?

@@ -173,6 +173,98 @@ distinctive. Acceptable, given the project's story is backend ownership.
 
 ---
 
+## ADR-0008 — A minimal organisation model lands in Phase 1
+
+**Date**: 2026-09-27 · **Status**: accepted
+
+**Context.** The roadmap put `organizations` and `memberships` in Phase 2, but Phase 1
+already needs them: every child table carries `org_id`, every policy resolves tenancy
+through `private.my_org_ids()`, which reads `memberships`, and Phase 1 itself asks for a
+personal organisation on signup.
+
+**Decision.** Phase 1 creates `organizations(id, name, slug, created_at)`, `memberships`
+and the `org_role` enum, with their policies. Phase 2 keeps everything that makes an
+organisation shared: invitations, `/app/[org]` routing, the switcher and the team page.
+Billing columns arrive in Phase 4 as their own `alter table` migration.
+
+**Rejected.** User-scoped tables in Phase 1 with tenancy added in Phase 2, which means
+rewriting every policy and backfilling `org_id` into live data — the retrofit the
+denormalised design exists to avoid. Pulling the whole Phase 2 schema forward, which
+drags invitations and their service-role path in before the basics are understood.
+
+**Consequences.** Phase 1 policies are the real multi-tenant policies from day one, and
+seeded memberships let Phase 1 tests exercise member-versus-manager visibility even
+though the invite flow does not exist yet.
+
+---
+
+## ADR-0009 — A trigger on `auth.users` provisions each new user
+
+**Date**: 2026-09-27 · **Status**: accepted
+
+**Context.** Each new user needs a profile, a personal organisation, an owner membership
+and a default account before the app is usable.
+
+**Decision.** One `security definer` trigger function in the `private` schema runs after
+insert on `auth.users` and creates all four rows in the same transaction as the signup.
+
+**Rejected.** A Nitro route called on first login, which can be skipped by a client that
+never calls it, can race when two tabs log in at once, and leaves a user half provisioned
+if it fails midway. It would also need the service-role client, a fourth bypass site.
+
+**Consequences.** A bug in the trigger makes every signup fail with "Database error saving
+new user", so the trigger has its own test. Provisioning logic lives in SQL rather than
+TypeScript, which is less familiar but cannot be bypassed.
+
+---
+
+## ADR-0010 — RLS tests are SQL, written with pgTAP
+
+**Date**: 2026-09-27 · **Status**: accepted
+
+**Context.** The headline invariant — member A cannot read member B's trades — needs an
+automated test that fails when a policy is loosened.
+
+**Decision.** pgTAP tests in `supabase/tests/`, run by `supabase test db`. Each test
+impersonates users with `set local role authenticated` and `request.jwt.claims`, which is
+exactly what PostgREST does per request, and rolls back at the end. The community
+`basejump-supabase_test_helpers` package is not used; the two impersonation lines are the
+concept being learned.
+
+**Rejected.** Vitest driving several signed-in `supabase-js` clients against the running
+stack, which tests the full HTTP path but needs real sessions, is slower, and leaves test
+data behind unless every test cleans up.
+
+**Consequences.** Tests run inside the database, in a transaction, in well under a second.
+They do not exercise PostgREST itself, so grants are asserted explicitly rather than
+assumed.
+
+---
+
+## ADR-0011 — Explicit, least-privilege grants on every table
+
+**Date**: 2026-09-27 · **Status**: accepted
+
+**Context.** Supabase stopped granting `anon` and `authenticated` access to new `public`
+tables automatically: the default for new projects from 2026-05-30, enforced on all
+projects from 2026-10-30. Staging will be a new project. Even the remaining default
+privileges include `truncate`, which row level security does not apply to.
+
+**Decision.** `auto_expose_new_tables = false` locally, so local matches staging. Every
+table's migration revokes all privileges from `anon` and `authenticated`, then grants back
+only the operations its policies are written for, using column-level `update` grants where
+some columns must never be user-editable. `anon` gets nothing in Phase 1.
+
+**Rejected.** Relying on the old default grants, which would work locally and break on
+staging. Granting everything to `authenticated` and relying on RLS alone, which leaves
+`truncate` open and makes a missing policy the only line of defence.
+
+**Consequences.** Grants and policies are two layers that must agree: a missing grant is a
+loud `42501 permission denied`, a missing policy is a silent empty result. Each new table
+or column now needs a deliberate grant.
+
+---
+
 ## Deferred decisions
 
 Recorded so they are not silently forgotten:

@@ -1,0 +1,22 @@
+// You should aim for:
+
+Frontend understanding: 80–90%
+Node/Nitro understanding: 70–80%
+Database understanding: initially 50–60%, gradually increasing
+
+you should understand the database architecture 
+and security model(RLS) well enough that you can reason about what the code is doing.
+
+// Continue building with AI, but make AI explain the database architecture 
+and RLS before implementing important pieces.
+
+// Learning logs from phase 1 which I did not understood.
+For your learning log
+These were the surprises:
+- The Supabase change to default grants.
+- truncate isn't covered by RLS.
+- (select …) only helps when the function takes no column of the current row.
+- auto_expose_new_tables only applies to a freshly rebuilt database.
+- A test that stayed green when one layer was removed is defence in depth working, not a gap.
+
+

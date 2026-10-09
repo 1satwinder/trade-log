@@ -27,7 +27,6 @@ export function useAdminDb(event: H3Event): PostgresJsDatabase {
     if (!databaseUrl) {
       throw internalError({ message: 'NUXT_DATABASE_URL is not configured' })
     }
-    console.log('databaseUrl satwinder', databaseUrl)
     // PostgreSQL client for Node.js with nitro as web server for backend
     pool = postgres(databaseUrl, {
       max: 10,
