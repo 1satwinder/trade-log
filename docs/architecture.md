@@ -27,6 +27,14 @@ flowchart LR
   NuxtSSR --> Resend
 ```
 
+## Flows
+
+One file per end-to-end path in [flows/](flows/), each verified against the running
+stack and updated in the same commit as any change to its hops.
+
+- [Request authorisation through RLS](flows/request-authorisation.md): how a Data API
+  query becomes "only your rows" (Phase 1 M2)
+
 ## The three data access paths
 
 This is the most important rule in the codebase. An ORM connects over the Postgres wire
