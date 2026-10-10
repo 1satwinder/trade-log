@@ -46,8 +46,11 @@ Enums: `org_role` is `owner | admin | member`; `trade_status` is `open | closed`
 
 Types: prices and quantities are `numeric(20, 8)`, because forex quotes need five decimals
 and crypto sizes eight; money in the account currency (`fees`, `starting_balance`) is
-`numeric(16, 2)`. Never `float`, which cannot represent 0.1 exactly. PostgREST returns
-`numeric` as a string, so parsing happens in one place in TypeScript.
+`numeric(16, 2)`. Never `float`, which cannot represent 0.1 exactly. Postgres stores them
+exactly and PostgREST writes them into JSON as exact number literals (`403.88000000`), but
+`JSON.parse` turns those into binary floats, so TypeScript arithmetic on them carries
+float noise. `shared/utils/trade-stats.ts` absorbs it by rounding once, at the end
+(ADR-0012).
 
 ## Design notes
 
@@ -69,6 +72,14 @@ without it, so trades logged without a stop simply have no R multiple.
 time; a closed one has both, and exits cannot precede entries. Quantities and prices are
 positive, fees non-negative. The database refuses bad rows from every path, including the
 Drizzle admin client and the dashboard.
+
+**Every user is provisioned by a trigger.** `private.handle_new_user()` runs after insert
+on `auth.users` and creates the profile, a personal organisation named
+"<display name>'s journal", an owner membership and a "Main" account (ADR-0009). The
+display name comes from `raw_user_meta_data.full_name`, falling back to the email's local
+part; it is cosmetic only, because users can edit that metadata. The slug is the
+kebab-cased local part plus six random hex characters, retried on a collision, so it never
+reveals which names are taken. Users with no email get "My journal" and `user-<hex>`.
 
 **P&L is computed, not stored.** Realised P&L is a function of quantity, prices, side and
 fees, so it is derived in a view or in query-time SQL. Storing it invites drift. The
@@ -216,7 +227,15 @@ ownership check. Public journal pages never expose attachments.
 
 ## Seed data
 
-`seed.sql` creates a demo organisation with an owner, two members, a few dozen trades
-spread across several months with a realistic mix of winners and losers, tags, and one
-published share link. It has to be good enough that the demo login tells a story and the
-equity curve looks plausible.
+`seed.sql` creates the Demo Desk (`demo-desk`): Maya Chen as owner, Sam Okafor and Priya
+Nair as members, all with the password `demo-password`. Users are inserted into
+`auth.users` and `auth.identities` with fixed ids, so the signup trigger provisions them
+exactly as it would a real signup; Maya's personal organisation is then renamed into the
+desk, and the members keep their own, empty personal organisations as well.
+
+The desk holds 44 trades over about six months, drawn in R multiples with `setseed`, so
+every reset produces the same numbers. Each trader has their own win rate, a few trades
+have no stop (and so no R multiple), each trader's two latest trades are open, and every
+trade carries a setup tag. It has to be good enough that the demo login tells a story and
+the equity curve looks plausible. One published share link joins it in Phase 3, when
+`share_links` exists.

@@ -153,6 +153,18 @@ The active organisation lives in the route (`/app/[org]/...`), not in client sta
 that SSR, deep links and refreshes all behave. A server-side guard resolves the slug to a
 membership and rejects non-members before any page renders.
 
+## Shared code
+
+```
+shared/
+  utils/        trade-stats.ts (P&L, win rate, R multiple), with its Vitest file
+```
+
+Nuxt 4 auto-imports everything exported from `shared/utils/` into both `app/` and
+`server/`, so the stats strip and any API response compute numbers with the same
+functions. Code here is pure: no I/O and nothing Vue- or Nitro-specific. Exported names
+become globals on both sides, which is why they are specific (`roundTo`, not `round`).
+
 ## Async and background work
 
 - **Scheduled**: `nitro.experimental.tasks` plus `scheduledTasks`. On the `node-server`

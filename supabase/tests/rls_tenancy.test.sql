@@ -28,7 +28,9 @@ insert into auth.users (id, email) values
   ('33333333-3333-3333-3333-333333333333', 'carol@test.local'),
   ('44444444-4444-4444-4444-444444444444', 'dave@test.local');
 
--- The signup trigger arrives in the next migration and may already have created these.
+-- The signup trigger has already created these profiles, plus a personal org and account
+-- per user that no assertion below touches. Inserting them anyway keeps the fixtures
+-- readable without the trigger.
 insert into public.profiles (id, display_name) values
   ('11111111-1111-1111-1111-111111111111', 'Alice'),
   ('22222222-2222-2222-2222-222222222222', 'Bob'),

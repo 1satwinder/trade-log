@@ -8,7 +8,7 @@ How to use this file: tick items as they land, and when a phase closes, write wh
 learned and what broke into [learning-log.md](learning-log.md). Do not start a phase
 before the previous one's exit criteria are met — the exit criteria are the point.
 
-Status: **Phase 0 complete. Phase 1 not started.**
+Status: **Phase 0 complete. Phase 1 in progress.**
 
 Each phase gets a short plan written just before it starts, and that file becomes the
 record of how it was built. See [plans/phase-0.md](plans/phase-0.md).
@@ -36,20 +36,21 @@ Nitro route reads from Postgres, and no secret is referenced outside `runtimeCon
 
 ## Phase 1 — Auth and the core domain
 
-- [ ] Drizzle schema for `profiles`, `accounts`, `trades`, `tags`, `trade_tags`
-- [ ] Generate DDL and land it as timestamped Supabase migrations
-- [ ] Trigger on `auth.users` to create a `profiles` row on signup
-- [ ] Auto-create a personal organisation and owner membership on first login
-- [ ] `private` schema `security definer` helpers, with execute revoked from `anon`
-- [ ] RLS enabled on every table, with per-operation policies
-- [ ] Indexes for every policy predicate
+- [x] Drizzle schema for `profiles`, `accounts`, `trades`, `tags`, `trade_tags`
+- [x] Generate DDL and land it as timestamped Supabase migrations
+- [x] Trigger on `auth.users` to create a `profiles` row on signup
+- [x] Auto-create a personal organisation and owner membership on signup, in the same
+      trigger (ADR-0009)
+- [x] `private` schema `security definer` helpers, with execute revoked from `anon`
+- [x] RLS enabled on every table, with per-operation policies
+- [x] Indexes for every policy predicate
 - [ ] Login, logout and the `/confirm` callback working through SSR cookies
 - [ ] Trades CRUD as Nitro routes using `serverSupabaseClient`, validated with Zod
 - [ ] `requireUser` and `requireOrgRole` utilities
 - [ ] Trade list and trade detail pages
-- [ ] SQL RLS tests: member A cannot read, update or delete member B's trades
-- [ ] Vitest units for P&L, win rate and R multiple
-- [ ] `seed.sql` with a believable demo organisation
+- [x] SQL RLS tests: member A cannot read, update or delete member B's trades
+- [x] Vitest units for P&L, win rate and R multiple
+- [x] `seed.sql` with a believable demo organisation
 - [ ] Create the managed staging Supabase project
 - [ ] Deploy to Render and confirm the deployed app works against staging Supabase
 

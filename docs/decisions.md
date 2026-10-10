@@ -265,6 +265,36 @@ or column now needs a deliberate grant.
 
 ---
 
+## ADR-0012 — How trade statistics are defined and computed
+
+**Date**: 2026-10-09 · **Status**: accepted
+
+**Context.** P&L, win rate and R multiple each have more than one accepted definition, and
+the numbers reach TypeScript as binary floats: PostgREST sends `numeric` as JSON number
+literals, which `JSON.parse` cannot hold exactly. A quietly different definition, or a
+cent lost to rounding, is the kind of bug nobody notices.
+
+**Decision.** Realised P&L is net of fees. A closed trade is a win when its net P&L,
+rounded to cents, is above zero, and breakeven when it is exactly zero. Win rate is wins
+over wins plus losses, so breakevens count in neither. The R multiple is net P&L divided by
+the initial risk, `|entry - stop| × quantity`, and is null when there is no stop or the
+stop is not on the losing side of the entry. Arithmetic runs in floats in
+`shared/utils/trade-stats.ts`, and results are rounded once, half away from zero, after
+`toPrecision(15)` strips the binary noise.
+
+**Rejected.** Counting breakevens as non-wins, which punishes scratching out of a trade.
+Gross R, which can call a trade +0.1R while its fees made it a loss. A decimal library,
+which is a dependency to solve a precision problem that two-decimal results never hit.
+Casting to text in every `select` to receive strings, which pushes parsing into every
+call site.
+
+**Consequences.** Win rate and R always agree with the sign of the P&L shown beside them.
+Values beyond about a trillion at two decimals would lose cents, which no trade here
+reaches. Aggregates computed later in SQL (Phase 5) must use the same definitions, and
+the Vitest cases are the specification to check them against.
+
+---
+
 ## Deferred decisions
 
 Recorded so they are not silently forgotten:
