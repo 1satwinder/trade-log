@@ -21,7 +21,7 @@
     "db:status": "supabase status",
     "db:reset": "supabase db reset",
     "db:generate": "drizzle-kit generate",
-    "db:types": "supabase gen types typescript --local > app/types/database.types.ts",
+    "db:types": "supabase gen types typescript --local > shared/types/database.types.ts && prettier --write shared/types/database.types.ts",
     "test": "vitest run",
     "test:db": "supabase test db"
   },

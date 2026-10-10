@@ -5,6 +5,7 @@ import {
   roundTo,
   tradeOutcome,
   tradeStats,
+  withTradeStats,
   type TradeForStats,
 } from './trade-stats'
 
@@ -138,6 +139,20 @@ describe('rMultiple', () => {
 
   it('is null for an open trade', () => {
     expect(rMultiple(openTrade())).toBeNull()
+  })
+})
+
+describe('withTradeStats', () => {
+  it('keeps every row field and adds P&L and R', () => {
+    const row = { ...trade(), id: 'abc', symbol: 'AAPL' }
+    expect(withTradeStats(row)).toEqual({ ...row, realised_pnl: 100, r_multiple: 2 })
+  })
+
+  it('adds nulls for an open trade', () => {
+    expect(withTradeStats(openTrade())).toMatchObject({
+      realised_pnl: null,
+      r_multiple: null,
+    })
   })
 })
 

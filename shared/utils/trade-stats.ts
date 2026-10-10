@@ -5,19 +5,16 @@
 // straight in. PostgREST sends numeric columns as JSON numbers, which JSON.parse turns into
 // binary floats; arithmetic happens in floats and is rounded once at the end.
 
-export type TradeSide = 'long' | 'short'
-export type TradeStatus = 'open' | 'closed'
+import type { Enums, Tables } from '../types/database.types'
 
-export interface TradeForStats {
-  side: TradeSide
-  status: TradeStatus
-  quantity: number
-  entry_price: number
-  exit_price: number | null
-  stop_price: number | null
-  // Total round-trip fees, in the account currency.
-  fees: number
-}
+export type TradeSide = Enums<'trade_side'>
+export type TradeStatus = Enums<'trade_status'>
+
+// `fees` is the total round-trip fees, in the account currency.
+export type TradeForStats = Pick<
+  Tables<'trades'>,
+  'side' | 'status' | 'quantity' | 'entry_price' | 'exit_price' | 'stop_price' | 'fees'
+>
 
 export type TradeOutcome = 'win' | 'loss' | 'breakeven'
 
@@ -79,6 +76,13 @@ export function rMultiple(trade: TradeForStats): number | null {
   const riskPerUnit = (trade.entry_price - trade.stop_price) * directionOf(trade.side)
   if (riskPerUnit <= 0) return null
   return roundTo(pnl / (riskPerUnit * trade.quantity), 2)
+}
+
+// A trade with its realised P&L and R multiple attached, as the trades API returns it.
+export function withTradeStats<T extends TradeForStats>(
+  trade: T,
+): T & { realised_pnl: number | null; r_multiple: number | null } {
+  return { ...trade, realised_pnl: realisedPnl(trade), r_multiple: rMultiple(trade) }
 }
 
 // The summary shown above the trade list.

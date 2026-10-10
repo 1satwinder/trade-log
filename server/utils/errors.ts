@@ -51,3 +51,42 @@ export const tooManyRequests = (options?: AppErrorOptions) =>
 
 export const internalError = (options?: AppErrorOptions) =>
   appError(500, 'Internal Server Error', options)
+
+/** The fields of a PostgREST error this file reads. */
+export interface DatabaseError {
+  code: string
+  message: string
+  details?: string | null
+  hint?: string | null
+}
+
+/**
+ * Turns an error returned by a serverSupabaseClient query into an HTTP error.
+ *
+ * Postgres messages name tables, constraints and sometimes values, so they go into
+ * `cause` for the server log and never into the response. Zod at the route boundary
+ * mirrors the check constraints, so the database codes here are the last line, not the
+ * usual path.
+ */
+export function mapDatabaseError(error: DatabaseError): H3Error {
+  switch (error.code) {
+    // A row that RLS hides is invisible, not forbidden, so `.single()` finds no row.
+    case 'PGRST116':
+      return notFound({ cause: error })
+    // An insert or update whose new row fails a policy's `with check`.
+    case '42501':
+      return forbidden({ cause: error })
+    case '23505':
+      return conflict({ message: 'That already exists', cause: error })
+    case '22003':
+    case '23502':
+    case '23503':
+    case '23514':
+      return unprocessable({ cause: error })
+    // Malformed input such as a bad uuid or number, which Zod should already have caught.
+    case '22P02':
+      return badRequest({ cause: error })
+    default:
+      return internalError({ cause: error })
+  }
+}

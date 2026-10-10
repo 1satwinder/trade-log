@@ -2,10 +2,11 @@
 
 **Trigger**: a query arrives at the Data API · **Outcome**: only the rows this user may
 see or write are touched
-**Status**: built in Phase 1 M2. The Nitro route in front of PostgREST arrives in M6;
-until then the caller is `curl` or a pgTAP test.
-**Last verified**: 2026-10-09, against the local stack with `curl` and
-`supabase/tests/rls_tenancy.test.sql`
+**Status**: built in Phase 1 M2. Since M6 the usual caller is a Nitro route under
+`server/api/trades/`, which takes the JWT from the session cookie and turns the
+outcomes below into 404, 403 and 422.
+**Last verified**: 2026-10-09, against the local stack with `curl` through the Nitro
+routes as Sam, Priya and Maya, and `supabase/tests/rls_tenancy.test.sql`
 
 This flow shows the hops a request takes. The three checks inside Postgres (grants,
 policies, constraints) are drawn as a decision tree in
@@ -16,7 +17,7 @@ policies, constraints) are drawn as a decision tree in
 ```mermaid
 sequenceDiagram
   autonumber
-  participant C as Caller (curl today, Nitro from M6)
+  participant C as Caller (a Nitro route, or curl)
   participant K as Kong gateway
   participant R as PostgREST
   participant P as Postgres
@@ -53,7 +54,7 @@ sequenceDiagram
   R->>P: update as authenticated
   P->>P: update policy's using clause hides the row
   P-->>R: 0 rows updated, no error
-  R-->>C: 200 [] (the M6 route turns this into 404)
+  R-->>C: 200 [] (PATCH /api/trades/:id answers 404)
 
   C->>R: POST /rest/v1/trades with another user's org_id and user_id
   R->>P: insert as authenticated
@@ -61,6 +62,11 @@ sequenceDiagram
   P-->>R: 42501 new row violates row-level security policy
   R-->>C: 403
 ```
+
+`POST /api/trades` never reaches step 8 with a foreign `org_id` or `user_id`. The strict
+Zod schema rejects both keys with 400, `user_id` comes from `requireUser`, and `org_id`
+is copied from an account the caller owns. That check, the composite foreign key and
+this policy are three separate layers guarding the same rule.
 
 ## What each step guarantees
 
@@ -86,6 +92,9 @@ returns `PGRST202`, because the `private` schema is not exposed (invariant 6).
   grants until a migration adds them
 - `supabase/tests/rls_tenancy.test.sql` and `supabase/tests/rls_catalogue.test.sql`: the
   proof
+- `server/api/trades/*.ts` and `server/utils/errors.ts`: the Nitro routes in front of
+  PostgREST, and `mapDatabaseError`, which turns `PGRST116`, `42501` and the constraint
+  codes into 404, 403 and 422
 
 ## Related
 

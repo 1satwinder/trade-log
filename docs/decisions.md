@@ -295,6 +295,40 @@ the Vitest cases are the specification to check them against.
 
 ---
 
+## ADR-0013 — `requireUser` trusts a verified JWT, not a round trip to Auth
+
+**Date**: 2026-10-09 · **Status**: accepted
+
+**Context.** `@nuxtjs/supabase` 2.0.10's `serverSupabaseUser` calls `getClaims()`, not
+`getUser()`, and returns the token's claims rather than a Supabase `User`. The local stack
+and hosted projects sign access tokens with an asymmetric key (ES256), so `getClaims()`
+verifies the signature against public keys that `auth-js` caches process-wide for ten
+minutes. No request reaches Supabase Auth. The cost is revocation: after sign-out, or even
+after the user is deleted, the access token passes until it expires, which is
+`jwt_expiry = 3600` seconds.
+
+**Decision.** `requireUser` uses `serverSupabaseUser` as it is and returns `{ id, email }`
+from the `sub` and `email` claims. Any failure to verify becomes a 401. Sign-out uses
+`scope: 'local'`, which revokes this browser's refresh token and leaves the user's other
+devices signed in.
+
+**Rejected.** Calling `getUser()` in `requireUser`, which asks Auth on every request and
+would notice a revoked session. It closes nothing: PostgREST verifies the same token the
+same way, so a revoked token keeps working directly against the Data API anyway. It would
+add a network hop to every route for a guarantee the rest of the stack does not give.
+Shortening `jwt_expiry` is the lever that actually narrows the window, and it is left at
+the default until there is a reason.
+
+**Consequences.** Verified on the local stack: a deleted user's cookie still passed
+`requireUser`, but `/api/trades` returned `[]` and `/api/me` returned 404, because RLS
+found no memberships and no profile. Authorisation lives in the database and is read
+fresh on every statement, so a removed membership takes effect immediately even while
+the token lives. That is also why roles stay out of JWT claims (see the deferred
+decisions below). A route that must refuse a signed-out session the moment it ends, such
+as account deletion, should call `getUser()` itself.
+
+---
+
 ## Deferred decisions
 
 Recorded so they are not silently forgotten:

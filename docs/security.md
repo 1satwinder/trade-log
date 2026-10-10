@@ -9,10 +9,13 @@ merging anything that touches data access.
 Two independent questions, answered in two different places:
 
 **Who are you?** Answered by Supabase Auth. On the server, the only trustworthy answer
-comes from `serverSupabaseUser(event)`, which verifies the token. `serverSupabaseSession`
-is explicitly not trustworthy, because the session originates on the client and can be
-tampered with. Client-side route middleware is user experience only: it hides pages, it
-never secures them.
+comes from `serverSupabaseUser(event)`, which verifies the token's signature, and every
+route reaches it through `requireUser`. `serverSupabaseSession` is explicitly not
+trustworthy, because the session originates on the client and can be tampered with.
+Client-side route middleware is user experience only: it hides pages, it never secures
+them. A verified token is honoured until it expires, up to an hour, even after sign-out or
+deletion of the user (ADR-0013). That is safe only because the next question is answered
+fresh on every statement.
 
 **What may you see or change?** Answered by Postgres, through row level security. The
 application does not decide this; policies do. Rules expressed only in application code

@@ -51,7 +51,7 @@ cp .env.example .env    # then paste the keys printed by `npm run db:status`
 npm run dev
 ```
 
-The app is on http://localhost:3000, Supabase Studio on http://127.0.0.1:54323, and
+The app is on http://localhost:3000, Supabase Studio on http://127.0.0.1:15423, and
 `curl localhost:3000/api/health` confirms Nitro can reach Postgres.
 
 | Script              | What it does                                         |
