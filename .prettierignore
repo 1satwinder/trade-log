@@ -6,3 +6,5 @@ dist
 node_modules
 package-lock.json
 supabase/.temp
+# Rewritten by drizzle-kit on every generate.
+server/db/generated

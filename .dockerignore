@@ -1,0 +1,20 @@
+# Secrets never enter the image; Render supplies them at runtime.
+.env
+.env.*
+!.env.example
+
+# Rebuilt inside the image.
+node_modules
+.nuxt
+.output
+.data
+.nitro
+.cache
+
+# Not needed to build the app.
+.git
+.cursor
+supabase/.branches
+supabase/.temp
+*.local.txt
+*.log

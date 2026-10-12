@@ -9,6 +9,7 @@ const { user, isSignedIn, signOut } = useAuth()
         <NuxtLink to="/" class="font-semibold">Tradelog</NuxtLink>
         <div class="flex items-center gap-2">
           <template v-if="isSignedIn">
+            <UButton to="/app/trades" variant="ghost" color="neutral">Trades</UButton>
             <UButton to="/app" variant="ghost" color="neutral">{{ user?.email }}</UButton>
             <UButton variant="outline" color="neutral" @click="signOut">Sign out</UButton>
           </template>

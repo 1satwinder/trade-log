@@ -11,6 +11,8 @@ export function useAuth() {
   const config = useRuntimeConfig()
 
   const isSignedIn = computed(() => user.value !== null)
+  // For showing what the caller owns. The server never trusts it: RLS decides.
+  const userId = computed(() => user.value?.sub ?? null)
 
   // The browser stores the PKCE code verifier in a cookie before the email is sent, so
   // the link only works in this browser, and only on the same host as siteUrl.
@@ -58,6 +60,7 @@ export function useAuth() {
 
   return {
     user,
+    userId,
     isSignedIn,
     sendMagicLink,
     signInWithPassword,

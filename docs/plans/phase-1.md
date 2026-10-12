@@ -19,18 +19,18 @@ each milestone checkpoint.
 
 ## Milestones
 
-| Milestone                        | State   |
-| -------------------------------- | ------- |
-| M0 Housekeeping                  | done    |
-| M1 Tables as code                | done    |
-| M2 Authorisation in the database | done    |
-| M3 Signup trigger and seed       | built   |
-| M4 Pure calculations             | built   |
-| M5 Auth in the app               | built   |
-| M6 Trades API                    | built   |
-| M7 Pages                         | pending |
-| M8 Staging and Render            | pending |
-| M9 Close-out                     | pending |
+| Milestone                        | State                                 |
+| -------------------------------- | ------------------------------------- |
+| M0 Housekeeping                  | done                                  |
+| M1 Tables as code                | done                                  |
+| M2 Authorisation in the database | done                                  |
+| M3 Signup trigger and seed       | built                                 |
+| M4 Pure calculations             | built                                 |
+| M5 Auth in the app               | built                                 |
+| M6 Trades API                    | built                                 |
+| M7 Pages                         | built                                 |
+| M8 Staging and Render            | local half built; cloud steps pending |
+| M9 Close-out                     | pending                               |
 
 ## M0 to M2 — what was built
 
@@ -257,9 +257,119 @@ each milestone checkpoint.
   `[]` and `/api/me` 404, as ADR-0013 predicts.
 - Probe users, their orgs and Mailpit messages were removed afterwards.
 
-## Left for M7 onwards
+## M7 — scope agreed before building
+
+- **Managers see the whole list, with a Trader column and an "Only mine" toggle.** Maya
+  can read 44 trades but change only her 16, so edit and delete are hidden on the rest,
+  and the stats strip covers whatever is shown.
+- **M8 is split.** The Dockerfile and a local run of the image are built now; the
+  Supabase project and the Render service need your accounts, so they follow the runbook
+  below.
+
+## M7 — what was built
+
+- Pages [trades/index.vue](../../app/pages/app/trades/index.vue),
+  [new.vue](../../app/pages/app/trades/new.vue) and
+  [[id].vue](../../app/pages/app/trades/[id].vue) (view, edit, delete with a confirm
+  modal), plus [error.vue](../../app/error.vue) and a Trades link in the layout.
+- `app/components/trades/`: `StatsStrip`, `Table`, `Form` and `Details`.
+- [app/utils/trade-form.ts](../../app/utils/trade-form.ts): the form's own Zod schema and
+  the conversion from form strings to request bodies, with 19 Vitest cases;
+  `format.ts` and `fetch-error.ts` beside it.
+- The list and detail routes now return `trader_name`, and the detail route embeds the
+  account's name and currency. Their shapes are `TradeResponse` and
+  `TradeDetailResponse` in [shared/types/trade.ts](../../shared/types/trade.ts).
+- `@iconify-json/lucide`, so Nuxt UI's icons are bundled instead of fetched from the
+  Iconify API at runtime.
+- [flows/trade-list-render.md](../flows/trade-list-render.md).
+
+## M7 — decisions taken while building
+
+- **Trader names come from a second query, not an embed.** `trades.user_id` references
+  `auth.users`, not `profiles`, so PostgREST has no relationship to follow. A foreign key
+  to `profiles` would allow the embed, but it is a schema change made only for a join,
+  and one `in (...)` query per list costs a single round trip.
+- **Form fields are strings.** `UInput` bound to a number turns the text `1.0` back into
+  `1` as you type, so `1.05` cannot be entered. The form's schema validates strings, and
+  `toTradeCreateBody` converts once.
+- **An edit sends only the fields that changed.** The `datetime-local` input shows minutes,
+  so resending an untouched `entry_at` would quietly drop its seconds. A test proves an
+  unchanged form produces an empty patch.
+- **Dates use `<NuxtTime>` and numbers use a fixed locale.** The server and the browser
+  can disagree on timezone and locale, and a different string at hydration is a mismatch.
+  `<NuxtTime>` rewrites each date in the browser just before hydration.
+- **"Only mine" is a query string**, so the server renders the filtered view, and the
+  toggle is a link that works with JavaScript off.
+- **A malformed id in the URL shows the 404 page.** The API answers 400 for it, but from
+  the reader's side the trade simply does not exist.
+- **App code imports `shared/` through `#shared`.** A relative import passed in dev and
+  failed `nuxt build`; `vitest.config.ts` now maps the alias for tests.
+
+## M7 — verified
+
+- `npm test` passes 61 of 61; lint, typecheck and Prettier are clean; `nuxt build`
+  succeeds.
+- Server-rendered HTML through `curl`: Sam's list has 14 rows and a net P&L of +268.67,
+  matching M4's SQL check. Maya's has 44 rows and a Trader column, and 16 with
+  `?mine=1`. Maya opening Sam's trade sees "Logged by Sam Okafor" and no Edit button.
+  Priya gets a 404 page for it. Signed out, `/app/trades` answers 302 to `/login`.
+- In the browser as a magic-link user: empty state, field errors on an empty submit,
+  then create, close with an exit (+102.60, +2.01R, as calculated by hand), and delete.
+  No console warnings or errors on full loads or client navigation.
+- From the Docker image in UTC: the HTML said 4:21 PM, the browser in New York showed
+  12:21 PM, and Vue raised no hydration warning.
+
+## M8 — what was built
+
+- [Dockerfile](../../Dockerfile) and [.dockerignore](../../.dockerignore): a two-stage
+  build on `node:22-slim` that copies only `.output` into the runtime stage, 236 MB.
+  `npm ci --ignore-scripts`, because `postinstall` runs `nuxt prepare` before the source
+  is copied in.
+- Run locally with `--network host` against the local stack: `/api/health` answered ok,
+  Sam's list rendered, Priya got 404 on Sam's trade, and `siteUrl` in the payload was the
+  runtime value. So one image, configured at start, holds.
+
+## M8 — runbook for the cloud steps
+
+1. **Put the repo on GitHub.** Render deploys from a Git provider, and this repo has no
+   remote yet.
+2. **Create the Supabase project** `tradelog-staging` in the dashboard, in the region
+   nearest the Render region you will pick. Keep the database password in a password
+   manager. Touch project settings only, never the schema.
+3. **Push the migrations.** `npx supabase login`, then
+   `npx supabase link --project-ref <ref>`, then `npx supabase db push --dry-run` and,
+   if it lists the two migrations, `npx supabase db push`. Staging is never seeded.
+4. **Create the Render web service** from the repo, with the Docker runtime and health
+   check path `/api/health`. The name you choose fixes the URL,
+   `https://<name>.onrender.com`. Environment variables:
+   - `NUXT_PUBLIC_SUPABASE_URL`: `https://<ref>.supabase.co`
+   - `NUXT_PUBLIC_SUPABASE_KEY` and `NUXT_SUPABASE_SECRET_KEY`: from Project Settings,
+     API Keys
+   - `NUXT_DATABASE_URL`: the **session pooler** string from Connect, port 5432. The
+     direct connection is IPv6-only and Render cannot reach it.
+   - `NUXT_PUBLIC_SITE_URL`: the Render URL
+5. **Point Auth at Render.** In Authentication, URL Configuration, set the site URL to
+   the Render URL and add `<Render URL>/confirm` as the only redirect URL. Without it,
+   magic links fall back to the site URL and skip `/confirm`.
+6. **Check it.** `/api/health`, then two real signups by magic link, each logging a
+   trade, and neither seeing the other's. The built-in sender allows only a few emails
+   an hour, so space the signups out.
+
+Traps to watch on staging:
+
+- **JWT signing keys.** If the project still signs with the legacy shared secret,
+  `getClaims()` cannot verify locally and calls Auth on every request instead (ADR-0013).
+  Check Project Settings, JWT Keys; new projects should already use asymmetric keys.
+- **Free instances sleep** after about 15 minutes idle and take up to a minute to wake,
+  so the first request after a pause, or a magic link opened later, is slow.
+- **`config.toml` does not reach staging.** Its `[auth]` settings are local only, which
+  is why step 5 is done in the dashboard.
+
+## Left for later
 
 - The trades read policy exercise from the plan's M2 "try it" step.
 - The seed's share link, once `share_links` exists in Phase 3.
 - Moving `/app` under `/app/[org]/` in Phase 2, which gives `requireOrgRole` its first
   caller.
+- Pagination of the trade list, once a journal outgrows one screen.
+- A tag picker on the trade form; `tags` and `trade_tags` have policies but no UI yet.

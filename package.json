@@ -26,6 +26,7 @@
     "test:db": "supabase test db"
   },
   "dependencies": {
+    "@iconify-json/lucide": "^1.2.142",
     "@nuxt/ui": "^4.11.0",
     "@nuxtjs/supabase": "^2.0.10",
     "drizzle-orm": "^0.45.2",

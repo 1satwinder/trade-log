@@ -18,6 +18,8 @@ const { data: me, error } = await useFetch('/api/me')
         <p class="text-muted">{{ me.email }}</p>
       </div>
 
+      <UButton to="/app/trades" label="Open your trades" />
+
       <div class="space-y-2">
         <h2 class="font-medium">Your organisations</h2>
         <ul class="divide-y divide-default rounded-md border border-default">

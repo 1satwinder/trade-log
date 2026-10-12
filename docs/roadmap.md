@@ -47,7 +47,7 @@ Nitro route reads from Postgres, and no secret is referenced outside `runtimeCon
 - [x] Login, logout and the `/confirm` callback working through SSR cookies
 - [x] Trades CRUD as Nitro routes using `serverSupabaseClient`, validated with Zod
 - [x] `requireUser` and `requireOrgRole` utilities
-- [ ] Trade list and trade detail pages
+- [x] Trade list and trade detail pages
 - [x] SQL RLS tests: member A cannot read, update or delete member B's trades
 - [x] Vitest units for P&L, win rate and R multiple
 - [x] `seed.sql` with a believable demo organisation
