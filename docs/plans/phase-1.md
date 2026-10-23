@@ -14,23 +14,23 @@ each milestone checkpoint.
 - **Explicit grants on every table** (ADR-0011), found while starting: Supabase no longer
   exposes new `public` tables to the Data API by default, and staging will be a new
   project.
-- **`trades.stop_price`** added, since an R multiple needs the initial risk.
-- **Pages at `/app/trades`** for now; they move under `/app/[org]/` in Phase 2.
+- `trades.stop_price` added, since an R multiple needs the initial risk.
+- **Pages at** `/app/trades` for now; they move under `/app/[org]/` in Phase 2.
 
 ## Milestones
 
-| Milestone                        | State                                 |
-| -------------------------------- | ------------------------------------- |
-| M0 Housekeeping                  | done                                  |
-| M1 Tables as code                | done                                  |
-| M2 Authorisation in the database | done                                  |
-| M3 Signup trigger and seed       | built                                 |
-| M4 Pure calculations             | built                                 |
-| M5 Auth in the app               | built                                 |
-| M6 Trades API                    | built                                 |
-| M7 Pages                         | built                                 |
-| M8 Staging and Render            | local half built; cloud steps pending |
-| M9 Close-out                     | pending                               |
+| Milestone                        | State                               |
+| -------------------------------- | ----------------------------------- |
+| M0 Housekeeping                  | done                                |
+| M1 Tables as code                | done                                |
+| M2 Authorisation in the database | done                                |
+| M3 Signup trigger and seed       | built                               |
+| M4 Pure calculations             | built                               |
+| M5 Auth in the app               | built                               |
+| M6 Trades API                    | built                               |
+| M7 Pages                         | built                               |
+| M8 Staging and Render            | done                                |
+| M9 Close-out                     | pending: checks and security review |
 
 ## M0 to M2 — what was built
 
@@ -50,20 +50,20 @@ each milestone checkpoint.
 
 ## Decisions taken while building
 
-- **`auto_expose_new_tables` only applies to a freshly initialised database.** Restarting
+- `auto_expose_new_tables` **only applies to a freshly initialised database.** Restarting
   the stack restored the old volume with the old default privileges; only
   `supabase db reset` picked the setting up.
-- **The remaining default privileges include `truncate`.** Even with auto-expose off, `anon`
+- **The remaining default privileges include** `truncate`**.** Even with auto-expose off, `anon`
   and `authenticated` keep `truncate`, `references`, `trigger` and `maintain` on new
   tables. `truncate` ignores RLS, so each migration revokes all before granting.
-- **`is_org_manager(org_id)` became `my_managed_org_ids()`.** Wrapping a call in
+- `is_org_manager(org_id)` **became** `my_managed_org_ids()`**.** Wrapping a call in
   `(select …)` only makes it an InitPlan when it takes no column of the current row. A
   helper that takes `org_id` is a correlated subquery, re-run per row. Returning a set of
   org ids keeps every policy call argument-free.
-- **No API role has usage on the `private` schema.** Policies still work, because the
+- **No API role has usage on the** `private` **schema.** Policies still work, because the
   function in a stored policy is resolved when the policy is created; only execute is
   checked at run time. So `authenticated` cannot even name the schema in ad hoc SQL.
-- **`trades` has a single composite foreign key** on `(account_id, org_id, user_id)`. It
+- `trades` **has a single composite foreign key** on `(account_id, org_id, user_id)`. It
   replaces a policy subquery that would otherwise check that the account is the caller's,
   and carries cascades from both `organizations` and `auth.users`.
 - **Tests assert outcomes, not mechanisms.** Granting update on `trades.user_id` by hand
@@ -101,15 +101,15 @@ each milestone checkpoint.
   with `on conflict (slug) do nothing returning id` in a loop of five. The suffix stops a
   slug revealing that a name is taken; the loop avoids exception handling, which costs a
   savepoint per attempt in PL/pgSQL.
-- **Display name from `full_name` metadata, else the email local part, truncated to 80.**
-  The truncation is what keeps "<name>'s journal" inside the 100-character check on
+- **Display name from** `full_name` **metadata, else the email local part, truncated to 80.**
+  The truncation is what keeps "'s journal" inside the 100-character check on
   `organizations.name`; without it, a long name blocks the signup.
 - **The seed renames Maya's trigger-created org into the Demo Desk** rather than creating
   a second org. Sam and Priya keep empty personal orgs, so the demo shows a user who
   belongs to two organisations.
-- **Seed users are inserted with every GoTrue token column set to `''`.** GoTrue reads
+- **Seed users are inserted with every GoTrue token column set to** `''`**.** GoTrue reads
   them into non-nullable strings, so `null` breaks password login for those users.
-- **Trades are drawn in R multiples under `setseed(0.42)`**, so the numbers are plausible
+- **Trades are drawn in R multiples under** `setseed(0.42)`, so the numbers are plausible
   for a trading journal and identical after every reset.
 
 ## M3 — verified
@@ -136,17 +136,17 @@ each milestone checkpoint.
 
 ## M4 — decisions taken while building
 
-- **PostgREST does not return `numeric` as strings.** The plan and `data-model.md` said
+- **PostgREST does not return** `numeric` **as strings.** The plan and `data-model.md` said
   it did. It sends exact JSON number literals, and `JSON.parse` makes them floats, so the
   trap is float noise, not parsing. Both documents are corrected.
 - **Breakevens are excluded from the win rate**, and R uses net P&L, so both always agree
   with the sign of the P&L (ADR-0012).
-- **Rounding is `toPrecision(15)`, then half away from zero.** Plain
+- **Rounding is** `toPrecision(15)`**, then half away from zero.** Plain
   `Math.round(x * 100) / 100` turns 1.005 into 1.00, because `1.005 * 100` is
   `100.49999999999999`.
 - **Fields are snake_case, mirroring the row,** so M6 and M7 can pass rows straight in.
   Once M5 generates database types, `TradeForStats` can become a `Pick` of the row type.
-- **`round` became `roundTo`,** because Nuxt makes every `shared/utils` export a global
+- `round` **became** `roundTo`**,** because Nuxt makes every `shared/utils` export a global
   in both the app and the server.
 
 ## M4 — verified
@@ -163,10 +163,10 @@ each milestone checkpoint.
 - **Magic link plus a password form.** The magic link is the main path; the password
   form serves the seeded demo users, who all have `demo-password`, and the one-click demo
   login in [demo-script.md](../demo-script.md).
-- **`requireOrgRole` built now** to match the roadmap, though its first caller is the
+- `requireOrgRole` **built now** to match the roadmap, though its first caller is the
   `/app/[org]` routing in Phase 2. Trade create needs no org check of its own: the org
   comes from the caller's own account, and the insert policy checks membership.
-- **A placeholder `/app` page and `GET /api/me`**, so that M5 proves the server-rendered
+- **A placeholder** `/app` **page and** `GET /api/me`, so that M5 proves the server-rendered
   cookie path end to end rather than leaving it to M7.
 
 ## M5 — what was built
@@ -191,18 +191,18 @@ each milestone checkpoint.
   which is when `auth-js` exchanges `?code=`. So the session already exists, or the
   exchange has already failed, before `/confirm` mounts. The architecture diagram drew a
   server-side exchange and is fixed.
-- **`serverSupabaseUser` returns claims via `getClaims()`.** Local tokens are ES256, so
+- `serverSupabaseUser` **returns claims via** `getClaims()`**.** Local tokens are ES256, so
   verification is a signature check against public keys cached for ten minutes,
   process-wide, with no call to Auth. `requireUser` maps `sub` to `id` and turns the
   module's status-less error into a 401 (ADR-0013).
-- **Sign-out uses `scope: 'local'`.** The `auth-js` default is `global`, which signs the
+- **Sign-out uses** `scope: 'local'`**.** The `auth-js` default is `global`, which signs the
   user out on every device.
-- **`requireOrgRole` answers 404 to a non-member and 403 to a member without the role.**
+- `requireOrgRole` **answers 404 to a non-member and 403 to a member without the role.**
   The membership is read through RLS, so a non-member cannot tell that the org exists.
-- **Generated types live in `shared/types/`, not `app/types/`.** The app, the server and
+- **Generated types live in** `shared/types/`**, not** `app/types/`**.** The app, the server and
   `shared/utils` all need them, and `shared/types` is auto-imported on both sides.
   `TradeForStats` is now a `Pick` of `Tables<'trades'>`.
-- **The local `email_sent = 2` per hour limit does not apply to Mailpit.** It only
+- **The local** `email_sent = 2` **per hour limit does not apply to Mailpit.** It only
   applies once custom SMTP is enabled; three links in a row all arrived. It is still the
   M8 trap on staging's built-in sender.
 
@@ -226,12 +226,12 @@ each milestone checkpoint.
 - **Closing a trade needs its exit in the same PATCH; reopening clears it.** Zod handles
   the rules a patch can decide by itself. The rest, such as an exit price on a trade that
   stays open, reaches the check constraint and answers 422.
-- **Zod enums read `Constants` from the generated types**, so they cannot drift from the
+- **Zod enums read** `Constants` **from the generated types**, so they cannot drift from the
   Postgres enums.
 - **The trades list has no user or org filter.** The select policy decides, so Maya
   gets all 44 Demo Desk trades and Sam gets his 14. The accounts list does filter to
   the caller, as a product choice, because those are the only accounts you can log into.
-- **`z.uuid()` is strict RFC 9562.** The seed's fixed user ids (`5eed0000-0000-0000-…`)
+- `z.uuid()` **is strict RFC 9562.** The seed's fixed user ids (`5eed0000-0000-0000-…`)
   fail it, because their version digit is 0. No route validates a user id, and every
   other id comes from `gen_random_uuid()`, but `z.guid()` is the fallback if that changes.
 
@@ -295,14 +295,14 @@ each milestone checkpoint.
 - **An edit sends only the fields that changed.** The `datetime-local` input shows minutes,
   so resending an untouched `entry_at` would quietly drop its seconds. A test proves an
   unchanged form produces an empty patch.
-- **Dates use `<NuxtTime>` and numbers use a fixed locale.** The server and the browser
+- **Dates use** `<NuxtTime>` **and numbers use a fixed locale.** The server and the browser
   can disagree on timezone and locale, and a different string at hydration is a mismatch.
   `<NuxtTime>` rewrites each date in the browser just before hydration.
 - **"Only mine" is a query string**, so the server renders the filtered view, and the
   toggle is a link that works with JavaScript off.
 - **A malformed id in the URL shows the 404 page.** The API answers 400 for it, but from
   the reader's side the trade simply does not exist.
-- **App code imports `shared/` through `#shared`.** A relative import passed in dev and
+- **App code imports** `shared/` **through** `#shared`**.** A relative import passed in dev and
   failed `nuxt build`; `vitest.config.ts` now maps the alias for tests.
 
 ## M7 — verified
@@ -332,14 +332,21 @@ each milestone checkpoint.
 ## M8 — runbook for the cloud steps
 
 1. **Put the repo on GitHub.** Render deploys from a Git provider, and this repo has no
+
    remote yet.
+
 2. **Create the Supabase project** `tradelog-staging` in the dashboard, in the region
+
    nearest the Render region you will pick. Keep the database password in a password
    manager. Touch project settings only, never the schema.
+
 3. **Push the migrations.** `npx supabase login`, then
+
    `npx supabase link --project-ref <ref>`, then `npx supabase db push --dry-run` and,
    if it lists the two migrations, `npx supabase db push`. Staging is never seeded.
+
 4. **Create the Render web service** from the repo, with the Docker runtime and health
+
    check path `/api/health`. The name you choose fixes the URL,
    `https://<name>.onrender.com`. Environment variables:
    - `NUXT_PUBLIC_SUPABASE_URL`: `https://<ref>.supabase.co`
@@ -348,10 +355,14 @@ each milestone checkpoint.
    - `NUXT_DATABASE_URL`: the **session pooler** string from Connect, port 5432. The
      direct connection is IPv6-only and Render cannot reach it.
    - `NUXT_PUBLIC_SITE_URL`: the Render URL
+
 5. **Point Auth at Render.** In Authentication, URL Configuration, set the site URL to
+
    the Render URL and add `<Render URL>/confirm` as the only redirect URL. Without it,
    magic links fall back to the site URL and skip `/confirm`.
+
 6. **Check it.** `/api/health`, then two real signups by magic link, each logging a
+
    trade, and neither seeing the other's. The built-in sender allows only a few emails
    an hour, so space the signups out.
 
@@ -362,8 +373,51 @@ Traps to watch on staging:
   Check Project Settings, JWT Keys; new projects should already use asymmetric keys.
 - **Free instances sleep** after about 15 minutes idle and take up to a minute to wake,
   so the first request after a pause, or a magic link opened later, is slow.
-- **`config.toml` does not reach staging.** Its `[auth]` settings are local only, which
+- `config.toml` **does not reach staging.** Its `[auth]` settings are local only, which
   is why step 5 is done in the dashboard.
+
+## M8 — cloud steps, as run
+
+- Staging Supabase project `tradelog-staging` (`us-east-2`) with both migrations pushed and
+  no seed. The Render service `trade-log-t4ul` runs the Docker image, and the Auth site
+  URL and redirect list point at `https://trade-log-t4ul.onrender.com`.
+- JWT signing keys on staging are asymmetric, so `getClaims()` verifies locally and the
+  ADR-0013 trap does not apply.
+
+## M8 — what went wrong on staging
+
+- **Magic links opened `localhost:3000/?code=…`.** The Supabase site URL was still the
+  default. `emailRedirectTo` is only honoured when it is on the redirect allow-list, and
+  otherwise Supabase falls back to the site URL. Step 5 fixes it, and a link already sent
+  keeps the old target.
+- **`/api/health` returned 500 while `/api/trades` worked.** The two use different paths:
+  trades go through PostgREST over HTTPS with the user's JWT, and health goes through
+  Drizzle on `NUXT_DATABASE_URL`. A working trades page proves nothing about the database
+  URL. Render's log showed Postgres error `28P01`, password authentication failed, so the
+  connection string carried the wrong password. The ORM tab's string also uses port 6543,
+  the transaction pooler, and the runbook needs the session pooler on 5432.
+- **A password with `@` in a connection string** must be percent-encoded, or it parses as
+  a different host. Resetting to letters and digits avoids the whole class.
+
+## M8 — verified
+
+- `GET /api/health` answers `{"status":"ok","database":"postgres",…}`, and 25 requests in
+  a row all returned 200, so the pooled connections and prepared statements hold.
+- Signed out, `/app/trades` answers 302 and `/api/trades` answers 401.
+- Magic-link sign-in works on the Render URL. Two separate accounts each logged trades and
+  neither could see the other's.
+- The staging secret key is configured but unused, since no route calls
+  `serverSupabaseServiceRole` yet (see invitations in Phase 2).
+
+## M9 — what is left
+
+- Run the Review checklist in [security.md](../security.md) over the Phase 1 routes,
+  with an answer and a line of evidence for each item.
+- Run `npm run lint`, `typecheck`, `test`, and `db:reset` with `test:db` and
+  `supabase db advisors --local` one last time on the final tree.
+- Check [data-model.md](../data-model.md) and [architecture.md](../architecture.md)
+  against what shipped, in particular the 5432 and 6543 notes for the admin client.
+- Write the Phase 1 entries into [learning-log.md](../learning-log.md), and commit.
 
 ## Left for later
 

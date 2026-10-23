@@ -61,6 +61,70 @@ hesitation, note the entry that earned it.
 
 ## Entries
 
+### 2026-10-23 — Five Supabase auth names, sorted by where they run and what they return
+
+**Concept**: telling `useSupabaseClient`, `useSupabaseUser`, `serverSupabaseClient`,
+`serverSupabaseUser` and `requireUser` apart.
+**What happened**: the names looked interchangeable and it was unclear which to call where.
+**Why**: two questions sort them. Where does it run: `use…` is a Vue composable in the
+browser, `server…(event)` is Nitro. What does it return: `User` is identity (claims),
+`Client` is a tool for talking to Supabase.
+
+|                            | Browser               | Nitro                                                        |
+| -------------------------- | --------------------- | ------------------------------------------------------------ |
+| Who is signed in           | `useSupabaseUser()`   | `serverSupabaseUser(event)`, wrapped by `requireUser(event)` |
+| Client to query or sign in | `useSupabaseClient()` | `serverSupabaseClient(event)`                                |
+
+`requireUser` is ours: it calls `serverSupabaseUser` and turns every failure into a 401.
+`serverSupabaseClient` forwards the user's JWT, so RLS applies.
+**Takeaway**: browser names are for UX and never count as security. In a route, call
+`requireUser` first, then `serverSupabaseClient`. Only call the raw module function inside
+`requireUser`.
+
+### 2026-10-23 — Password sign-in and magic link differ only in how Supabase is convinced
+
+**Concept**: the login method versus the session it produces.
+**What happened**: password login worked in the deployed app, and it was unclear whether
+the request passed through Nitro.
+**Why**: it does not. `signInWithPassword` runs in the browser and calls
+`POST <project>.supabase.co/auth/v1/token?grant_type=password`. Supabase Auth checks the
+password against its stored hash and returns an access token and a refresh token. A magic
+link ends the same way: the `code` and the PKCE verifier are exchanged at
+`/auth/v1/token?grant_type=pkce`. In both cases the Supabase client writes the session to
+the `sb-…-auth-token` cookie, so the Nitro server never sees the password.
+**Takeaway**: everything after sign-in is identical, so `requireUser` and RLS do not know
+which method was used. A new method such as OAuth would need no server change.
+
+### 2026-10-23 — The session is a signed token in a cookie, not a server-side record
+
+**Concept**: token-based versus session-based authentication, and who issues what.
+**What happened**: it was unclear whether the cookie was a session id, and how Nitro could
+trust it without a session store.
+**Why**: Supabase Auth issues a signed JWT access token (about an hour) and a refresh
+token. The browser stores them in a cookie, which is only transport. `useSsrCookies: true`
+in `nuxt.config.ts` puts the session in cookies rather than localStorage, which is what
+lets Nitro see it. `requireUser` calls `serverSupabaseUser`, which checks the token's
+signature against Supabase's cached public keys and its expiry. There is no lookup in
+Supabase or Postgres, so nothing here is stored per session. The cost is that a token stays
+valid after logout until it expires (ADR-0013). Then `serverSupabaseClient` forwards the
+same JWT, and Postgres RLS reads the user id from it, so identity is checked twice.
+**Takeaway**: in Supabase, "session" means a pair of JWTs in a cookie. The route guard from
+`redirect: true` is a client-side convenience, and real protection is `requireUser` plus
+RLS. This answers the first two Auth questions above.
+
+### 2026-10-23 — Magic links silently fall back to the Site URL
+
+**Concept**: where an auth redirect actually goes.
+**What happened**: on Render the emailed link opened `localhost:3000/?code=…` instead of
+`/confirm` on the deployed site.
+**Why**: the app asks for `emailRedirectTo: <siteUrl>/confirm`, but Supabase only honours
+it if the URL is on the Redirect URLs allow-list. Otherwise it falls back to the project's
+Site URL, which was still `http://localhost:3000`. The missing `/confirm` in the landing
+URL was the clue that the fallback had happened.
+**Takeaway**: for each environment, set the Site URL and add `<url>/confirm` to the
+allow-list in Authentication, URL Configuration. A link already sent keeps the old target,
+so request a new one to test.
+
 ### 2026-08-31 — "Never create a client at module scope" is about sessions, not connections
 
 **Concept**: what the rule in [AGENTS.md](../AGENTS.md) is actually protecting against.

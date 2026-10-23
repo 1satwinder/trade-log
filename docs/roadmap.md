@@ -8,7 +8,8 @@ How to use this file: tick items as they land, and when a phase closes, write wh
 learned and what broke into [learning-log.md](learning-log.md). Do not start a phase
 before the previous one's exit criteria are met — the exit criteria are the point.
 
-Status: **Phase 0 complete. Phase 1 in progress.**
+Status: **Phase 0 complete. Phase 1 built and live on Render; close-out checks (M9)
+pending.**
 
 Each phase gets a short plan written just before it starts, and that file becomes the
 record of how it was built. See [plans/phase-0.md](plans/phase-0.md).
@@ -51,8 +52,8 @@ Nitro route reads from Postgres, and no secret is referenced outside `runtimeCon
 - [x] SQL RLS tests: member A cannot read, update or delete member B's trades
 - [x] Vitest units for P&L, win rate and R multiple
 - [x] `seed.sql` with a believable demo organisation
-- [ ] Create the managed staging Supabase project
-- [ ] Deploy to Render and confirm the deployed app works against staging Supabase
+- [x] Create the managed staging Supabase project
+- [x] Deploy to Render and confirm the deployed app works against staging Supabase
 
 **Exit criteria.** Two seeded users can each log trades and provably cannot see each
 other's, verified by a test that fails if a policy is loosened. The app is live on a
